@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "amq-wrapper",
-    "slug": "amq-wrapper",
+    "name": "AMQ Mobile",
+    "slug": "amq-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,10 +16,16 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.eerikp.amqmobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "888efe86-1f0f-48e6-ad3e-0570b2805738"
+      }
     }
   }
 }
