@@ -7,14 +7,6 @@ export default function App() {
   const webviewRef = useRef<React.ElementRef<typeof WebView>>(null);
   const [showControls, setShowControls] = useState(false);
 
-  /*useEffect(() => {
-    const id = setInterval(() => {
-      applyBattleRoyalMobileLayout();
-    }, 1000);
-    return () => clearInterval(id);
-  }, []);
-  */
-
   // CSS injected into AMQ
   const injectedCSS = `
     const style = document.createElement('style');
@@ -34,6 +26,16 @@ export default function App() {
         font-size: 20px !important;
         height: 50px !important;
       }
+
+      #gameChatPage > .col-xs-9,
+      #battleRoyalPage > .col-xs-9 {
+          width: 100% !important;
+          max-width: 100% !important;
+          flex: 0 0 100% !important;
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+      }
+
 
     \`;
 
@@ -182,170 +184,156 @@ export default function App() {
     `);
   };
 
-  const applyBattleRoyalMobileLayout = () => {
+  const applyMobileLayout = () => {
     webviewRef.current?.injectJavaScript(`
       try {
 
-        // Hide desktop UI
+        // Helper: apply multiple CSS properties cleanly
+        const setStyles = (el, styles) => {
+          if (!el) return;
+          Object.entries(styles).forEach(([prop, value]) => {
+            el.style.setProperty(prop, value, 'important');
+          });
+        };
 
-        [
+        // Helper: hide multiple selectors
+        const hideSelectors = selectors => {
+          selectors.forEach(sel => {
+            const el = document.querySelector(sel);
+            if (el) el.style.setProperty('display', 'none', 'important');
+          });
+        };
+
+
+        // Hide desktop-only UI
+        hideSelectors([
           '#gameChatContainer',
           '#gcContainer',
           '#gcMessageContainer',
           '#gcInputContainer',
-
           '#footerBar',
           '#bottomBar',
-
           '#qpSideContainer',
           '#qpRightContainer',
-
           '#brPlayerListContainer'
-        ].forEach(selector => {
-          document.querySelector(selector)
-            ?.style.setProperty(
-              'display',
-              'none',
-              'important'
-            );
+        ]);
+
+
+        // Make body fullscreen
+        setStyles(document.body, {
+          margin: '0',
+          padding: '0',
+          overflow: 'hidden'
         });
 
 
-        // Make page fullscreen
-
-        document.body.style.margin = '0';
-        document.body.style.padding = '0';
-        document.body.style.overflow = 'hidden';
-        
-
-        const game = document.getElementById('gameContainer');
-
-        if (game) {
-
-          game.style.setProperty(
-            'background-repeat',
-            'no-repeat',
-            'important'
-          );
-
-          game.style.setProperty(
-            'background-size',
-            'cover',
-            'important'
-          );
-
-          game.style.setProperty(
-            'background-position',
-            'center center',
-            'important'
-          );
-        }
-
+        // Fix game background
         const gameContainer = document.getElementById('gameContainer');
+        setStyles(gameContainer, {
+          'background-repeat': 'no-repeat',
+          'background-size': 'cover',
+          'background-position': 'center center',
+          'background-attachment': 'fixed'
+        });
 
-        if (gameContainer) {
-          gameContainer.style.backgroundRepeat = 'no-repeat';
-          gameContainer.style.backgroundSize = 'cover';
-          gameContainer.style.backgroundPosition = 'center center';
-          gameContainer.style.backgroundAttachment = 'fixed';
-        }
 
+        // Fix main container forcing desktop layout
+        const mainContainer = document.getElementById('mainContainer');
+        setStyles(mainContainer, {
+          'min-width': '0',
+          'min-height': '0',
+          'width': '100%',
+          'height': '100%'
+        });
+
+
+        // Fix gameChatPage height calc(-45px + 100vh)
+        const gameChatPage = document.getElementById('gameChatPage');
+        setStyles(gameChatPage, {
+          'height': '100%',
+          'padding-right': '0'
+        });
+
+
+        // Fix PerfectScrollbar repeating backgrounds
+        document.querySelectorAll('.ps__rail-y, .ps__rail-x, .ps__thumb-y, .ps__thumb-x')
+          .forEach(el => {
+            setStyles(el, {
+              'background-repeat': 'no-repeat',
+              'background-size': 'contain'
+            });
+          });
+
+
+        // Stabilize lobby avatar container
+        const lobbyAvatar = document.getElementById('lobbyAvatarContainer');
+        setStyles(lobbyAvatar, {
+          'position': 'relative',
+          'top': '0',
+          'height': '100%',
+          'padding-top': '10px',
+          'overflow-y': 'auto'
+        });
+
+
+        // Battle Royale layout fixes
         const map = document.getElementById('brMap');
+        setStyles(map, {
+          'position': 'absolute',
+          'top': '90px',
+          'left': '50%',
+          'transform': 'translateX(-50%) scale(1.07)',
+          'transform-origin': 'top center'
+        });
 
-        if (map) {
-          map.style.position = 'absolute';
-          map.style.top = '90px';
-          map.style.left = '50%';
-          map.style.transform = 'translateX(-50%) scale(1.07)';
-          map.style.transformOrigin = 'top center';
-        }
-
-        const wrapper =
-          document.querySelector(
-            '#battleRoyalPage > .col-xs-9'
-          );
-
-        if (wrapper) {
-
-          wrapper.style.position = 'static';
-
-          wrapper.style.height = '0';
-
-          wrapper.style.minHeight = '0';
-
-          wrapper.style.padding = '0';
-
-          wrapper.style.margin = '0';
-        }
-
-        // Center BR page
+        const wrapper = document.querySelector('#battleRoyalPage > .col-xs-9');
+        setStyles(wrapper, {
+          'position': 'static',
+          'height': '0',
+          'min-height': '0',
+          'padding': '0',
+          'margin': '0'
+        });
 
         const page = document.getElementById('battleRoyalPage');
-
-        if (page) {
-          page.style.paddingTop = '100px';
-          page.style.paddingBottom = '100px';
-        }
-
-        const gamePage = document.getElementById('gameChatPage');
-        if (gamePage) {
-          gamePage.style.paddingRight = '0px';
-     
-        }
-
+        setStyles(page, {
+          'padding-top': '100px',
+          'padding-bottom': '100px'
+        });
 
         const left = document.getElementById('brLeftContainer');
-
-        if (left) {
-          left.style.display = 'none';
-        }
+        setStyles(left, { 'display': 'none' });
 
         const mapContainer = document.getElementById('brMapContainer');
-
         if (mapContainer) {
-
-          // Break out of Bootstrap layout
-          mapContainer.className = '';
-
-          mapContainer.style.position = 'fixed';
-
-          mapContainer.style.top = '220px';
-
-          mapContainer.style.left = '0';
-
-          mapContainer.style.width = '100vw';
-
-          mapContainer.style.height = 'calc(100vh - 180px)';
-
-          mapContainer.style.margin = '0';
-
-          mapContainer.style.padding = '0';
-
-          mapContainer.style.display = 'flex';
-
-          mapContainer.style.justifyContent = 'center';
-
-          mapContainer.style.alignItems = 'flex-start';
-
-          mapContainer.style.zIndex = '1';
+          mapContainer.className = ''; // break Bootstrap layout
+          setStyles(mapContainer, {
+            'position': 'fixed',
+            'top': '220px',
+            'left': '0',
+            'width': '100vw',
+            'height': 'calc(100vh - 180px)',
+            'margin': '0',
+            'padding': '0',
+            'display': 'flex',
+            'justify-content': 'center',
+            'align-items': 'flex-start',
+            'z-index': '1'
+          });
         }
 
-        const start =
-          document.getElementById('lbStartButton');
-
-        if (start) {
-
-          start.style.transform =
-            'translateY(30px)';
-        }
+        const start = document.getElementById('lbStartButton');
+        setStyles(start, {
+          'transform': 'translateY(30px)'
+        });
 
 
-        
       } catch (e) {}
 
       true;
     `);
   };
+
 
   const debugBRBoxes = () => {
     webviewRef.current?.injectJavaScript(`
@@ -654,50 +642,7 @@ export default function App() {
       true;
     `);
   };
-  /*
-  const patchBattleRoyal = () => {
-    webviewRef.current?.injectJavaScript(`
-      try {
-
-        // Avoid patching multiple times
-        if (!window.__brPatched &&
-            window.BattleRoyalMap &&
-            BattleRoyalMap.prototype.setupTile) {
-
-          window.__brPatched = true;
-
-          const original =
-            BattleRoyalMap.prototype.setupTile;
-
-          BattleRoyalMap.prototype.setupTile =
-            function(...args) {
-
-              return original.apply(
-                this,
-                args
-              );
-            };
-
-          window.ReactNativeWebView.postMessage(
-            'BR patched'
-          );
-        }
-
-      } catch(e) {
-
-        window.ReactNativeWebView.postMessage(
-          'Patch error: ' + e.message
-        );
-
-      }
-
-      true;
-    `);
-  };
-  */
-
   
-
   return (
     <SafeAreaProvider>
       <SafeAreaView
@@ -717,7 +662,7 @@ export default function App() {
           }}
           onLoadEnd={() => {
             setTimeout(() => {
-              applyBattleRoyalMobileLayout();
+              applyMobileLayout();
             }, 500);
           }}
         />
@@ -727,8 +672,7 @@ export default function App() {
           style={styles.toggleButton}
           onPress={() => {
             setShowControls((prev) => !prev);
-            //debugMap();
-            applyBattleRoyalMobileLayout();
+            applyMobileLayout();
           }}
         >
           <Text style={styles.toggleText}>↑←↓→</Text>
