@@ -288,12 +288,12 @@ export default function App() {
 
         const wrapper = document.querySelector('#battleRoyalPage > .col-xs-9');
         setStyles(wrapper, {
-          'position': 'static',
-          'height': '0',
-          'min-height': '0',
+          'position': 'relative',
           'padding': '0',
-          'margin': '0'
+          'margin': '0',
+          'min-height': '100vh'
         });
+
 
         const page = document.getElementById('battleRoyalPage');
         setStyles(page, {
@@ -322,10 +322,206 @@ export default function App() {
           });
         }
 
-        const start = document.getElementById('lbStartButton');
-        setStyles(start, {
-          'transform': 'translateY(30px)'
+        // Remove blurred background from Bootstrap column
+        const blurredBg = document.querySelector('#mainContainer .col-xs-9');
+        setStyles(blurredBg, { 'background-image': 'none' });
+
+        // Remove clear background from mainContainer
+        setStyles(document.getElementById('mainContainer'), {
+          'background-image': 'none'
         });
+
+        // Apply unified fullscreen blurred background
+        const game = document.getElementById('gameContainer');
+        setStyles(game, {
+          'background-image': 'url("https://animemusicquiz.com/cdn/v1/ui/backgrounds/blur/1920px/game-bg.webp")',
+          'background-repeat': 'no-repeat',
+          'background-size': 'cover',
+          'background-position': 'center center',
+          'background-attachment': 'fixed'
+        });
+
+        // Make the left column full width
+        const col = document.querySelector('#gameChatPage > .col-xs-9');
+        setStyles(col, {
+          'width': '100vw',
+          'max-width': '100vw',
+          'padding-left': '0',
+          'padding-right': '0',
+          'float': 'none'
+        });
+
+        // --- topMenuBar: idempotent rebuild ---
+        const topBar = document.querySelector('#lobbyPage .topMenuBar');
+        if (topBar) {
+          const leaveBtn    = document.getElementById('lbLeaveButton');
+          const rulesBtn    = document.getElementById('lnModeRuleButton');
+          const startBtn    = document.getElementById('lbStartButton');
+          const roomName    = document.getElementById('lobbyRoomNameContainer');
+          const settingsBtn = document.getElementById('lnSettingsButton');
+
+          // Bar: relative so absolute children anchor to it
+          setStyles(topBar, {
+            'position': 'relative',
+            'height': '160px',
+            'width': '100vw',
+            'max-width': '100vw',
+            'margin': '0',
+            'padding': '0',
+            'box-sizing': 'border-box',
+            'overflow': 'visible'
+          });
+
+          // Idempotent middle container: reuse if already injected
+          let middleContainer = topBar.querySelector('#amqMobileMiddle');
+          if (!middleContainer) {
+            middleContainer = document.createElement('div');
+            middleContainer.id = 'amqMobileMiddle';
+          }
+
+          // Middle container spans the full bar and centers its children
+          setStyles(middleContainer, {
+            'position': 'absolute',
+            'left': '10px',
+            'right': '0',
+            'top': '0',
+            'bottom': '0',
+            'display': 'flex',
+            'flex-direction': 'row',
+            'align-items': 'center',
+            'justify-content': 'center',
+            'gap': '16px',
+            'pointer-events': 'none'
+          });
+
+          // Move elements into their final positions (safe to repeat)
+          if (rulesBtn)  middleContainer.appendChild(rulesBtn);
+          if (startBtn)  middleContainer.appendChild(startBtn);
+          if (roomName)  middleContainer.appendChild(roomName);
+          topBar.appendChild(middleContainer);
+
+          // Re-enable pointer events on middle buttons
+          [rulesBtn, startBtn, roomName].forEach(el => {
+            if (el) setStyles(el, { 'pointer-events': 'auto' });
+          });
+
+          // Leave: pinned to left edge, absolutely
+          if (leaveBtn) {
+            topBar.appendChild(leaveBtn);
+            setStyles(leaveBtn, {
+              'position': 'absolute',
+              'left': '0',
+              'top': '50%',
+              'transform': 'skew(-35deg) translateY(-50%)',
+              'width': '160px',
+              'height': '160px',
+              'display': 'flex',
+              'align-items': 'center',
+              'justify-content': 'center',
+              'box-sizing': 'border-box'
+            });
+            const inner = leaveBtn.querySelector('.clickAble');
+            if (inner) {
+              setStyles(inner, {
+                'transform': 'skew(35deg)',
+                'display': 'flex',
+                'align-items': 'center',
+                'justify-content': 'center',
+                'width': '100%',
+                'height': '100%',
+                'font-size': '40px',
+                'margin': '0',
+                'padding': '0'
+              });
+            }
+          }
+
+          // Settings: pinned to right edge, absolutely
+          if (settingsBtn) {
+            topBar.appendChild(settingsBtn);
+            setStyles(settingsBtn, {
+              'position': 'absolute',
+              'right': '0',
+              'top': '50%',
+              'transform': 'translateY(-50%)',
+              'width': '200px',
+              'height': '160px',
+              'display': 'flex',
+              'align-items': 'center',
+              'justify-content': 'center',
+              'box-sizing': 'border-box'
+            });
+            settingsBtn.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(h => {
+              setStyles(h, {
+                'font-size': '40px',
+                'margin': '0',
+                'padding': '0',
+                'line-height': '1',
+                'text-align': 'center'
+              });
+            });
+          }
+
+          // Common style for middle buttons (Rules, Start)
+          [rulesBtn, startBtn].forEach(el => {
+            if (!el) return;
+            setStyles(el, {
+              'display': 'flex',
+              'flex-direction': 'column',
+              'align-items': 'center',
+              'justify-content': 'center',
+              'width': '180px',
+              'height': '160px',
+              'box-sizing': 'border-box',
+              'flex-shrink': '0',
+              'margin': '10px',
+            });
+            el.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(h => {
+              setStyles(h, {
+                'font-size': '40px',
+                'margin': '0',
+                'padding': '0',
+                'line-height': '1',
+                'text-align': 'center',
+                'white-space': 'normal',
+                'word-break': 'break-word'
+              });
+            });
+          });
+
+          // Room name
+          if (roomName) {
+            setStyles(roomName, {
+              'position': 'relative',
+              'top': 'auto',
+              'left': '180px',
+              'right': 'auto',
+              'bottom': 'auto',
+              'display': 'flex',
+              'flex-direction': 'column',
+              'align-items': 'center',
+              'justify-content': 'center',
+              'width': '150px',
+              'height': '100px',
+              'box-sizing': 'border-box',
+              'flex-shrink': '0',
+              'white-space': 'normal',
+              'text-align': 'center',
+              'overflow': 'visible'
+            });
+            roomName.querySelectorAll('h5, h6').forEach(h => {
+              setStyles(h, {
+                'margin': '0',
+                'padding': '0',
+                'line-height': '1.2',
+                'text-align': 'center',
+                'white-space': 'normal',
+                'word-break': 'break-word',
+                'font-size': '30px'
+              });
+            });
+          }
+        }
 
 
       } catch (e) {}
@@ -333,6 +529,7 @@ export default function App() {
       true;
     `);
   };
+
 
 
   const debugBRBoxes = () => {
@@ -642,6 +839,43 @@ export default function App() {
       true;
     `);
   };
+
+  const debugRealBackgrounds = () => {
+    webviewRef.current?.injectJavaScript(`
+      try {
+        const results = [];
+
+        document.querySelectorAll('*').forEach(el => {
+          const style = window.getComputedStyle(el);
+          const bg = style.backgroundImage;
+
+          // Only include real images, skip gradients
+          if (bg && bg.startsWith('url(')) {
+            results.push({
+              id: el.id || null,
+              className: el.className || null,
+              tag: el.tagName.toLowerCase(),
+              backgroundImage: bg,
+              backgroundRepeat: style.backgroundRepeat,
+              backgroundSize: style.backgroundSize,
+              backgroundPosition: style.backgroundPosition
+            });
+          }
+        });
+
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify(results)
+        );
+
+      } catch (e) {
+        window.ReactNativeWebView.postMessage('ERROR ' + e.message);
+      }
+
+      true;
+    `);
+  };
+
+
   
   return (
     <SafeAreaProvider>
@@ -688,7 +922,7 @@ export default function App() {
               padding: 10,
               zIndex: 9999,
             }}
-            onPress={debugScreen}
+            onPress={debugRealBackgrounds}
           >
             <Text style={{ color: "white" }}>LAYOUT</Text>
           </TouchableOpacity>
