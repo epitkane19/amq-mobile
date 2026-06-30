@@ -186,346 +186,629 @@ export default function App() {
 
   const applyMobileLayout = () => {
     webviewRef.current?.injectJavaScript(`
-      try {
+      (function() {
+        try {
 
-        // Helper: apply multiple CSS properties cleanly
-        const setStyles = (el, styles) => {
-          if (!el) return;
-          Object.entries(styles).forEach(([prop, value]) => {
-            el.style.setProperty(prop, value, 'important');
-          });
-        };
-
-        // Helper: hide multiple selectors
-        const hideSelectors = selectors => {
-          selectors.forEach(sel => {
-            const el = document.querySelector(sel);
-            if (el) el.style.setProperty('display', 'none', 'important');
-          });
-        };
-
-
-        // Hide desktop-only UI
-        hideSelectors([
-          '#gameChatContainer',
-          '#gcContainer',
-          '#gcMessageContainer',
-          '#gcInputContainer',
-          '#footerBar',
-          '#bottomBar',
-          '#qpSideContainer',
-          '#qpRightContainer',
-          '#brPlayerListContainer'
-        ]);
-
-
-        // Make body fullscreen
-        setStyles(document.body, {
-          margin: '0',
-          padding: '0',
-          overflow: 'hidden'
-        });
-
-
-        // Fix game background
-        const gameContainer = document.getElementById('gameContainer');
-        setStyles(gameContainer, {
-          'background-repeat': 'no-repeat',
-          'background-size': 'cover',
-          'background-position': 'center center',
-          'background-attachment': 'fixed'
-        });
-
-
-        // Fix main container forcing desktop layout
-        const mainContainer = document.getElementById('mainContainer');
-        setStyles(mainContainer, {
-          'min-width': '0',
-          'min-height': '0',
-          'width': '100%',
-          'height': '100%'
-        });
-
-
-        // Fix gameChatPage height calc(-45px + 100vh)
-        const gameChatPage = document.getElementById('gameChatPage');
-        setStyles(gameChatPage, {
-          'height': '100%',
-          'padding-right': '0'
-        });
-
-
-        // Fix PerfectScrollbar repeating backgrounds
-        document.querySelectorAll('.ps__rail-y, .ps__rail-x, .ps__thumb-y, .ps__thumb-x')
-          .forEach(el => {
-            setStyles(el, {
-              'background-repeat': 'no-repeat',
-              'background-size': 'contain'
+          const setStyles = (el, styles) => {
+            if (!el) return;
+            Object.entries(styles).forEach(([prop, value]) => {
+              el.style.setProperty(prop, value, 'important');
             });
-          });
+          };
 
+          const hideSelectors = selectors => {
+            selectors.forEach(sel => {
+              const el = document.querySelector(sel);
+              if (el) el.style.setProperty('display', 'none', 'important');
+            });
+          };
 
-        // Stabilize lobby avatar container
-        const lobbyAvatar = document.getElementById('lobbyAvatarContainer');
-        setStyles(lobbyAvatar, {
-          'position': 'relative',
-          'top': '0',
-          'height': '100%',
-          'padding-top': '10px',
-          'overflow-y': 'auto'
-        });
+          // ---- Lobby top bar (rules, start, leave, settings, room name) ----
+          const applyTopBarLayout = () => {
+            const topBar = document.querySelector('#lobbyPage .topMenuBar');
+            if (!topBar) return;
 
+            const leaveBtn    = document.getElementById('lbLeaveButton');
+            const rulesBtn    = document.getElementById('lnModeRuleButton');
+            const startBtn    = document.getElementById('lbStartButton');
+            const roomName    = document.getElementById('lobbyRoomNameContainer');
+            const settingsBtn = document.getElementById('lnSettingsButton');
 
-        // Battle Royale layout fixes
-        const map = document.getElementById('brMap');
-        setStyles(map, {
-          'position': 'absolute',
-          'top': '90px',
-          'left': '50%',
-          'transform': 'translateX(-50%) scale(1.07)',
-          'transform-origin': 'top center'
-        });
+            setStyles(topBar, {
+              'position': 'relative', 'height': '160px', 'width': '100vw',
+              'max-width': '100vw', 'margin': '0', 'padding': '0',
+              'box-sizing': 'border-box', 'overflow': 'visible'
+            });
 
-        const wrapper = document.querySelector('#battleRoyalPage > .col-xs-9');
-        setStyles(wrapper, {
-          'position': 'relative',
-          'padding': '0',
-          'margin': '0',
-          'min-height': '100vh'
-        });
+            let middleContainer = topBar.querySelector('#amqMobileMiddle');
+            if (!middleContainer) {
+              middleContainer = document.createElement('div');
+              middleContainer.id = 'amqMobileMiddle';
+            }
 
+            setStyles(middleContainer, {
+              'position': 'absolute', 'left': '10px', 'right': '0',
+              'top': '0', 'bottom': '0', 'display': 'flex',
+              'flex-direction': 'row', 'align-items': 'center',
+              'justify-content': 'center', 'gap': '16px', 'pointer-events': 'none'
+            });
 
-        const page = document.getElementById('battleRoyalPage');
-        setStyles(page, {
-          'padding-top': '100px',
-          'padding-bottom': '100px'
-        });
+            if (rulesBtn)  middleContainer.appendChild(rulesBtn);
+            if (startBtn)  middleContainer.appendChild(startBtn);
+            if (roomName)  middleContainer.appendChild(roomName);
+            topBar.appendChild(middleContainer);
 
-        const left = document.getElementById('brLeftContainer');
-        setStyles(left, { 'display': 'none' });
+            [rulesBtn, startBtn, roomName].forEach(el => {
+              if (el) setStyles(el, { 'pointer-events': 'auto' });
+            });
 
-        const mapContainer = document.getElementById('brMapContainer');
-        if (mapContainer) {
-          mapContainer.className = ''; // break Bootstrap layout
-          setStyles(mapContainer, {
-            'position': 'fixed',
-            'top': '220px',
-            'left': '0',
-            'width': '100vw',
-            'height': 'calc(100vh - 180px)',
-            'margin': '0',
-            'padding': '0',
-            'display': 'flex',
-            'justify-content': 'center',
-            'align-items': 'flex-start',
-            'z-index': '1'
-          });
-        }
+            if (leaveBtn) {
+              topBar.appendChild(leaveBtn);
+              setStyles(leaveBtn, {
+                'position': 'absolute', 'left': '0', 'top': '50%',
+                'transform': 'skew(-35deg) translateY(-50%)',
+                'width': '160px', 'height': '160px', 'display': 'flex',
+                'align-items': 'center', 'justify-content': 'center', 'box-sizing': 'border-box'
+              });
+              const inner = leaveBtn.querySelector('.clickAble');
+              if (inner) {
+                setStyles(inner, {
+                  'transform': 'skew(35deg)', 'display': 'flex',
+                  'align-items': 'center', 'justify-content': 'center',
+                  'width': '100%', 'height': '100%', 'font-size': '40px',
+                  'margin': '0', 'padding': '0'
+                });
+              }
+            }
 
-        // Remove blurred background from Bootstrap column
-        const blurredBg = document.querySelector('#mainContainer .col-xs-9');
-        setStyles(blurredBg, { 'background-image': 'none' });
+            if (settingsBtn) {
+              topBar.appendChild(settingsBtn);
+              setStyles(settingsBtn, {
+                'position': 'absolute', 'right': '0', 'top': '50%',
+                'transform': 'translateY(-50%)', 'width': '200px', 'height': '160px',
+                'display': 'flex', 'align-items': 'center', 'justify-content': 'center',
+                'box-sizing': 'border-box'
+              });
+              settingsBtn.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(h => {
+                setStyles(h, {
+                  'font-size': '40px', 'margin': '0', 'padding': '0',
+                  'line-height': '1', 'text-align': 'center'
+                });
+              });
+            }
 
-        // Remove clear background from mainContainer
-        setStyles(document.getElementById('mainContainer'), {
-          'background-image': 'none'
-        });
+            [rulesBtn, startBtn].forEach(el => {
+              if (!el) return;
+              setStyles(el, {
+                'display': 'flex', 'flex-direction': 'column',
+                'align-items': 'center', 'justify-content': 'center',
+                'width': '180px', 'height': '160px', 'box-sizing': 'border-box',
+                'flex-shrink': '0', 'margin': '10px'
+              });
+              el.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(h => {
+                setStyles(h, {
+                  'font-size': '40px', 'margin': '0', 'padding': '0',
+                  'line-height': '1', 'text-align': 'center',
+                  'white-space': 'normal', 'word-break': 'break-word'
+                });
+              });
+            });
 
-        // Apply unified fullscreen blurred background
-        const game = document.getElementById('gameContainer');
-        setStyles(game, {
-          'background-image': 'url("https://animemusicquiz.com/cdn/v1/ui/backgrounds/blur/1920px/game-bg.webp")',
-          'background-repeat': 'no-repeat',
-          'background-size': 'cover',
-          'background-position': 'center center',
-          'background-attachment': 'fixed'
-        });
+            if (roomName) {
+              setStyles(roomName, {
+                'position': 'relative', 'top': 'auto', 'left': '180px', 'right': 'auto',
+                'bottom': 'auto', 'display': 'flex', 'flex-direction': 'column',
+                'align-items': 'center', 'justify-content': 'center',
+                'width': '150px', 'height': '100px', 'box-sizing': 'border-box',
+                'flex-shrink': '0', 'white-space': 'normal',
+                'text-align': 'center', 'overflow': 'visible'
+              });
+              roomName.querySelectorAll('h5, h6').forEach(h => {
+                setStyles(h, {
+                  'margin': '0', 'padding': '0', 'line-height': '1.2',
+                  'text-align': 'center', 'white-space': 'normal',
+                  'word-break': 'break-word', 'font-size': '30px'
+                });
+              });
+            }
+          };
 
-        // Make the left column full width
-        const col = document.querySelector('#gameChatPage > .col-xs-9');
-        setStyles(col, {
-          'width': '100vw',
-          'max-width': '100vw',
-          'padding-left': '0',
-          'padding-right': '0',
-          'float': 'none'
-        });
+          // ---- Multiple choice answer buttons ----
+          const applyMultipleChoiceLayout = () => {
+            const mcContainer = document.getElementById('qpMultipleChoiceContainer');
+            if (!mcContainer) return;
 
-        // --- topMenuBar: idempotent rebuild ---
-        const topBar = document.querySelector('#lobbyPage .topMenuBar');
-        if (topBar) {
-          const leaveBtn    = document.getElementById('lbLeaveButton');
-          const rulesBtn    = document.getElementById('lnModeRuleButton');
-          const startBtn    = document.getElementById('lbStartButton');
-          const roomName    = document.getElementById('lobbyRoomNameContainer');
-          const settingsBtn = document.getElementById('lnSettingsButton');
+            const centerContainer = document.getElementById('qpAnimeCenterContainer');
+            const parentRow = centerContainer?.parentElement;     // the row holding video + song info
+            const grandParent = parentRow?.parentElement;          // the container that holds that row
 
-          // Bar: relative so absolute children anchor to it
-          setStyles(topBar, {
-            'position': 'relative',
-            'height': '160px',
-            'width': '100vw',
-            'max-width': '100vw',
-            'margin': '0',
-            'padding': '0',
-            'box-sizing': 'border-box',
-            'overflow': 'visible'
-          });
+            if (grandParent && parentRow && mcContainer.parentElement !== grandParent) {
+              grandParent.insertBefore(mcContainer, parentRow.nextSibling);
+            }
 
-          // Idempotent middle container: reuse if already injected
-          let middleContainer = topBar.querySelector('#amqMobileMiddle');
-          if (!middleContainer) {
-            middleContainer = document.createElement('div');
-            middleContainer.id = 'amqMobileMiddle';
-          }
+            // Make sure grandParent doesn't clip or constrain mcContainer below the row
+            if (grandParent) {
+              setStyles(grandParent, {
+                'overflow': 'visible',
+                'height': 'auto',
+                'min-height': '0'
+              });
+            }
 
-          // Middle container spans the full bar and centers its children
-          setStyles(middleContainer, {
-            'position': 'absolute',
-            'left': '10px',
-            'right': '0',
-            'top': '0',
-            'bottom': '0',
-            'display': 'flex',
-            'flex-direction': 'row',
-            'align-items': 'center',
-            'justify-content': 'center',
-            'gap': '16px',
-            'pointer-events': 'none'
-          });
-
-          // Move elements into their final positions (safe to repeat)
-          if (rulesBtn)  middleContainer.appendChild(rulesBtn);
-          if (startBtn)  middleContainer.appendChild(startBtn);
-          if (roomName)  middleContainer.appendChild(roomName);
-          topBar.appendChild(middleContainer);
-
-          // Re-enable pointer events on middle buttons
-          [rulesBtn, startBtn, roomName].forEach(el => {
-            if (el) setStyles(el, { 'pointer-events': 'auto' });
-          });
-
-          // Leave: pinned to left edge, absolutely
-          if (leaveBtn) {
-            topBar.appendChild(leaveBtn);
-            setStyles(leaveBtn, {
-              'position': 'absolute',
-              'left': '0',
-              'top': '50%',
-              'transform': 'skew(-35deg) translateY(-50%)',
-              'width': '160px',
-              'height': '160px',
+            setStyles(mcContainer, {
+              'position': 'static',
+              'top': 'auto',
+              'left': 'auto',
+              'right': 'auto',
+              'width': '100%',
+              'box-sizing': 'border-box',
               'display': 'flex',
+              'flex-direction': 'column',
               'align-items': 'center',
-              'justify-content': 'center',
-              'box-sizing': 'border-box'
+              'gap': '160px'
             });
-            const inner = leaveBtn.querySelector('.clickAble');
-            if (inner) {
-              setStyles(inner, {
-                'transform': 'skew(35deg)',
+
+            const NEW_HEIGHT = 160; // px, must match entryContainer height below
+
+            mcContainer.querySelectorAll('.qpMultipleChoiceEntryContainer').forEach(entryContainer => {
+
+              // Capture the box's ORIGINAL height (AMQ's own layout height, before we touch it)
+              // only once, so repeated passes always scale from the same baseline.
+              if (!entryContainer.dataset.amqOrigHeight) {
+                const rect = entryContainer.getBoundingClientRect();
+                entryContainer.dataset.amqOrigHeight = rect.height || 90; // fallback if 0 (not yet rendered)
+              }
+              const origHeight = parseFloat(entryContainer.dataset.amqOrigHeight);
+              const scale = NEW_HEIGHT / origHeight;
+
+              setStyles(entryContainer, {
+                'width': '49%',
+                'min-width': '140px',
+                'height': NEW_HEIGHT + 'px',
+                'min-height': '90px',
+                'margin': '0',
+                'box-sizing': 'border-box',
+                'float': 'none',
+                'transform': 'translateY(100%)'
+              });
+
+              entryContainer.querySelectorAll(
+                '.qpMultipleChoiceEntryShadow, .qpMultipleChoiceEntryContainerInner, .qpMultipleChoiceEntry, .qpMultipleChoiceEntryTextContainer'
+              ).forEach(inner => {
+                setStyles(inner, {
+                  'width': '100%',
+                  'height': '100%',
+                  'box-sizing': 'border-box',
+                  'transform': 'skew(-10deg)'
+                });
+              });
+
+              const textContainer = entryContainer.querySelector('.qpMultipleChoiceEntryTextContainer');
+              if (textContainer) {
+                setStyles(textContainer, {
+                  'width': '100%',
+                  'height': '100%',
+                  'min-height': '100%',
+                  'box-sizing': 'border-box',
+                  'display': 'flex',
+                  'align-items': 'center',
+                  'justify-content': 'center',
+                  'position': 'static',
+                  'top': 'auto',
+                  'left': 'auto',
+                  'transform': 'skew(10deg)'
+                });
+              }
+
+              const clickEntry = entryContainer.querySelector('.qpMultipleChoiceEntry');
+              if (clickEntry) {
+                setStyles(clickEntry, {
+                  'display': 'flex',
+                  'align-items': 'center',
+                  'justify-content': 'center'
+                });
+              }
+
+              // Scale AMQ's auto-fit font-size proportionally, scoped to THIS entry only
+              entryContainer.querySelectorAll('.qpMultipleChoiceEntryText').forEach(textEl => {
+                if (!textEl.dataset.amqOrigFontSize) {
+                  const currentSize = parseFloat(getComputedStyle(textEl).fontSize) || 18;
+                  textEl.dataset.amqOrigFontSize = currentSize;
+                }
+                const origFontSize = parseFloat(textEl.dataset.amqOrigFontSize);
+                const newFontSize = Math.min(origFontSize * scale, 32); // cap so short titles don't get huge
+
+                setStyles(textEl, {
+                  'font-size': newFontSize + 'px',
+                  'white-space': 'normal',
+                  'word-break': 'break-word',
+                  'text-align': 'center',
+                  'width': '100%'
+                });
+              });
+            });
+          };
+
+          // ---- Center column: video player, anime name, overlays ----
+          const applyQuizCenterLayout = () => {
+            const centerContainer = document.getElementById('qpAnimeCenterContainer');
+            if (!centerContainer) return;
+
+            setStyles(centerContainer, {
+              'flex': '1 1 70%',   // grow/shrink enabled, with 70% as starting basis
+              'float': 'none',
+              'margin': '10px',
+              'box-sizing': 'border-box',
+              'display': 'flex',
+              'flex-direction': 'column',
+              'align-items': 'center',
+              'top': '170px',
+              'order': '1'
+            });
+
+            setStyles(document.getElementById('qpCenterInfoContainer'), {
+              'width': '100%',
+              'text-align': 'center'
+            });
+
+            setStyles(document.getElementById('qpAnimeNameContainer'), {
+              'width': '100%',
+              'height': '100px',
+              'text-align': 'center',
+              'margin': '0 auto'
+            });
+
+            setStyles(document.getElementById('qpAnimeNameHider'), {
+              'width': '80%',
+              'height': '100px',
+              'text-align': 'center',
+              'margin': '0 auto'
+            });
+
+            setStyles(document.getElementById('qpAnimeName'), {
+              'font-size': '40px',
+              'line-height': '1.2',
+              'text-align': 'center'
+            });
+
+            setStyles(document.getElementById('qpVideoContainerOuter'), {
+              'width': '100%',
+              'max-width': '100vw',
+              'margin': '0 auto',
+              'left': '0',
+              'right': '0'
+            });
+
+            setStyles(document.getElementById('qpVideoContainer'), {
+              'width': '100%',
+              'max-width': '100%',
+              'height': 'auto',
+              'aspect-ratio': '16 / 9',
+              'margin': '0 auto'
+            });
+
+            setStyles(document.getElementById('qpVideoContainerInner'), {
+              'width': '100%',
+              'margin': '0 auto',
+              'left': '0',
+              'right': '0',
+              'top': '10px'
+            });
+
+            ['#qpVideosUserHidden', '#qpVideoHider', '#qpTinyModeVideoHider', '#qpHiderText', '#qpExtraTimeCounter']
+              .forEach(sel => {
+                const el = document.querySelector(sel);
+                if (el) setStyles(el, { 'font-size': '28px' });
+              });
+          };
+
+          // ---- Side song info panel (next to video) ----
+          const applySongInfoLayout = () => {
+            const centerContainer = document.getElementById('qpAnimeCenterContainer');
+            const songInfo = document.getElementById('qpSongInfoContainer');
+            if (!songInfo || !centerContainer) return;
+
+            // The col-xs-3 div wrapping qpSongInfoContainer is the actual sibling
+            // to qpAnimeCenterContainer — that's what needs to be flexed, not songInfo itself.
+            const sideWrapper = songInfo.closest('.col-xs-3');
+            if (!sideWrapper) return;
+
+            const parentRow = centerContainer.parentElement;
+            if (parentRow && parentRow === sideWrapper.parentElement) {
+              setStyles(parentRow, {
+                'display': 'flex',
+                'flex-direction': 'row',
+                'align-items': 'stretch',   // was 'flex-start' — now children match height
+                'width': '100%',
+                'max-width': '100vw',
+                'margin': '0',
+                'padding': '0',
+                'box-sizing': 'border-box',
+                'float': 'none'
+              });
+              // ...grandParent reset stays the same
+            }
+
+            // Make the column wider — adjust both sideWrapper and songInfo together
+            setStyles(sideWrapper, {
+              'flex': '1 1 30%',
+              'position': 'static',
+              'float': 'none',
+              'top': 'auto',
+              'left': 'auto',
+              'right': 'auto',
+              'box-sizing': 'border-box',
+              'margin': '0',
+              'padding': '0',
+              'order': '2'
+            });
+
+            // Strip the Bootstrap grid class entirely so its CSS rules (width: 25%, etc.)
+            // can't compete with our inline styles at all
+            sideWrapper.classList.remove('col-xs-3');
+
+            setStyles(songInfo, {
+              'width': '100%',
+              'height': '100%',
+              'box-sizing': 'border-box',
+              'padding': '20px',
+              'overflow-y': 'auto',
+            });
+
+            songInfo.querySelectorAll('h3, h5, p, span, a, i').forEach(el => {
+              setStyles(el, {
+                'font-size': '30px',
+                'line-height': '1.2',
+                'white-space': 'normal',
+                'word-break': 'break-word',
+                'margin': '2px 0',
+                'padding': '0'
+              });
+            });
+
+            songInfo.querySelectorAll('h3').forEach(el => {
+              setStyles(el, { 'font-size': '13px' });
+            });
+          };
+
+          const applyQuizRowLayout = () => {
+            const centerContainer = document.getElementById('qpAnimeCenterContainer');
+            const songInfo = document.getElementById('qpSongInfoContainer');
+            const sideWrapper = songInfo?.closest('.col-xs-3');
+            if (!centerContainer || !sideWrapper) return;
+
+            const parentRow = centerContainer.parentElement;
+            if (parentRow !== sideWrapper.parentElement) return;
+
+            setStyles(parentRow, {
+              'display': 'flex',
+              'flex-direction': 'row',
+              'align-items': 'stretch',
+              'width': '100%',
+              'max-width': '100vw',
+              'margin': '0',
+              'padding': '0',
+              'box-sizing': 'border-box',
+              'float': 'none'
+            });
+
+            const grandParent = parentRow.parentElement;
+            if (grandParent) {
+              setStyles(grandParent, {
+                'width': '100%',
+                'max-width': '100vw',
+                'margin': '0',
+                'padding': '0',
+                'box-sizing': 'border-box'
+              });
+            }
+          };
+
+          // ---- Top-left action buttons (Leave, Return to Lobby, Pause) ----
+          const applyQuizLeftButtonsLayout = () => {
+            const leftButtonIds = ['qpLeaveButton', 'qpReturnToLobbyButton', 'qpPauseButton'];
+            const SIZE = 150; // px, square button
+            const TOP_OFFSET = 10; // lower this if buttons collide with other floating UI
+
+            leftButtonIds.forEach((id, index) => {
+              const btn = document.getElementById(id);
+              if (!btn) return;
+
+              setStyles(btn, {
+                'position': 'fixed',
+                'top': TOP_OFFSET + 'px',
+                'left': (10 + index * (SIZE + 8)) + 'px', // stack horizontally with spacing
+                'right': 'auto',
+                'width': SIZE + 'px',
+                'height': SIZE + 'px',
+                'box-sizing': 'border-box',
                 'display': 'flex',
                 'align-items': 'center',
                 'justify-content': 'center',
-                'width': '100%',
-                'height': '100%',
-                'font-size': '40px',
-                'margin': '0',
-                'padding': '0'
+                'z-index': '999'
+              });
+
+              btn.querySelectorAll('i').forEach(icon => {
+                setStyles(icon, {
+                  'font-size': '70px'
+                });
+              });
+
+              btn.querySelectorAll('p').forEach(p => {
+                setStyles(p, {
+                  'font-size': '40px',
+                  'margin': '0',
+                  'padding': '0',
+                  'text-align': 'center',
+                  'line-height': '1.1'
+                });
+              });
+            });
+          };
+
+          // ---- Top-right option icons (Quality, Settings, Song History) ----
+          const applyQuizRightButtonsLayout = () => {
+            const optionContainer = document.getElementById('qpOptionContainer');
+            if (!optionContainer) return;
+
+            setStyles(optionContainer, {
+              'position': 'fixed',
+              'width': '360px',
+              'height': '150px',
+              'top': '10px',
+              'right': '10px',
+              'left': 'auto',
+              'display': 'flex',
+              'flex-direction': 'row',
+              'align-items': 'center',
+              'gap': '12px',
+              'z-index': '999'
+            });
+
+            optionContainer.querySelectorAll('.qpOption').forEach(opt => {
+              setStyles(opt, {
+                'width': '70px',
+                'height': '70px',
+                'top': '30px',
+                'left': '70px',
+                'margin': '10px',
+                'display': 'flex',
+                'align-items': 'center',
+                'justify-content': 'center',
+                'box-sizing': 'border-box'   
+              });
+
+              opt.querySelectorAll('i').forEach(icon => {
+                setStyles(icon, {
+                  'font-size': '70px'
+                });
+              });
+            });
+          };
+
+          const hideStandingPanel = () => {
+            const standingWrapper = document.getElementById('qpStandingContainer')?.closest('.col-xs-3');
+            if (standingWrapper) {
+              standingWrapper.style.setProperty('display', 'none', 'important');
+            }
+          };
+
+          const hideVolumeControls = () => {
+            ['qpVolumeBar', 'qpVolumeIcon'].forEach(id => {
+              const el = document.getElementById(id);
+              if (el) el.style.setProperty('display', 'none', 'important');
+            });
+          };
+
+          // ---- Everything that should run on every pass ----
+          const runLayoutPass = () => {
+
+            hideSelectors([
+              '#gameChatContainer', '#gcContainer', '#gcMessageContainer',
+              '#gcInputContainer', '#footerBar', '#bottomBar',
+              '#qpRightContainer', '#brPlayerListContainer'
+              // qpStandingContainer handled separately below — needs wrapper hidden, not just itself
+            ]);
+
+            setStyles(document.body, { margin: '0', padding: '0', overflow: 'hidden' });
+
+            setStyles(document.getElementById('gameContainer'), {
+              'background-repeat': 'no-repeat',
+              'background-size': 'cover',
+              'background-position': 'center center',
+              'background-attachment': 'fixed'
+            });
+
+            setStyles(document.getElementById('mainContainer'), {
+              'min-width': '0', 'min-height': '0', 'width': '100%', 'height': '100%'
+            });
+
+            setStyles(document.getElementById('gameChatPage'), {
+              'height': '100%', 'padding-right': '0'
+            });
+
+            document.querySelectorAll('.ps__rail-y, .ps__rail-x, .ps__thumb-y, .ps__thumb-x')
+              .forEach(el => setStyles(el, { 'background-repeat': 'no-repeat', 'background-size': 'contain' }));
+
+            setStyles(document.getElementById('lobbyAvatarContainer'), {
+              'position': 'relative', 'top': '0', 'height': '100%',
+              'padding-top': '10px', 'overflow-y': 'auto'
+            });
+
+            setStyles(document.getElementById('brMap'), {
+              'position': 'absolute', 'top': '90px', 'left': '50%',
+              'transform': 'translateX(-50%) scale(1.07)', 'transform-origin': 'top center'
+            });
+
+            setStyles(document.querySelector('#battleRoyalPage > .col-xs-9'), {
+              'position': 'relative', 'padding': '0', 'margin': '0', 'min-height': '100vh'
+            });
+
+            setStyles(document.getElementById('battleRoyalPage'), {
+              'padding-top': '100px', 'padding-bottom': '100px'
+            });
+
+            setStyles(document.getElementById('brLeftContainer'), { 'display': 'none' });
+
+            const mapContainer = document.getElementById('brMapContainer');
+            if (mapContainer) {
+              mapContainer.className = '';
+              setStyles(mapContainer, {
+                'position': 'fixed', 'top': '220px', 'left': '0',
+                'width': '100vw', 'height': 'calc(100vh - 180px)',
+                'margin': '0', 'padding': '0', 'display': 'flex',
+                'justify-content': 'center', 'align-items': 'flex-start', 'z-index': '1'
               });
             }
+
+            setStyles(document.querySelector('#mainContainer .col-xs-9'), { 'background-image': 'none' });
+            setStyles(document.getElementById('mainContainer'), { 'background-image': 'none' });
+
+            setStyles(document.getElementById('gameContainer'), {
+              'background-image': 'url("https://animemusicquiz.com/cdn/v1/ui/backgrounds/blur/1920px/game-bg.webp")',
+              'background-repeat': 'no-repeat',
+              'background-size': 'cover',
+              'background-position': 'center center',
+              'background-attachment': 'fixed'
+            });
+
+            setStyles(document.querySelector('#gameChatPage > .col-xs-9'), {
+              'width': '100vw', 'max-width': '100vw',
+              'padding-left': '0', 'padding-right': '0', 'float': 'none'
+            });
+
+            applyTopBarLayout();
+            applyMultipleChoiceLayout();
+            applyQuizRowLayout();
+            applyQuizCenterLayout();
+            applySongInfoLayout();
+            hideStandingPanel();
+            applyQuizLeftButtonsLayout();
+            applyQuizRightButtonsLayout();
+            hideVolumeControls();
+          };
+
+          runLayoutPass();
+
+          if (window.__amqMobileObserver) {
+            window.__amqMobileObserver.disconnect();
           }
 
-          // Settings: pinned to right edge, absolutely
-          if (settingsBtn) {
-            topBar.appendChild(settingsBtn);
-            setStyles(settingsBtn, {
-              'position': 'absolute',
-              'right': '0',
-              'top': '50%',
-              'transform': 'translateY(-50%)',
-              'width': '200px',
-              'height': '160px',
-              'display': 'flex',
-              'align-items': 'center',
-              'justify-content': 'center',
-              'box-sizing': 'border-box'
-            });
-            settingsBtn.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(h => {
-              setStyles(h, {
-                'font-size': '40px',
-                'margin': '0',
-                'padding': '0',
-                'line-height': '1',
-                'text-align': 'center'
-              });
-            });
-          }
-
-          // Common style for middle buttons (Rules, Start)
-          [rulesBtn, startBtn].forEach(el => {
-            if (!el) return;
-            setStyles(el, {
-              'display': 'flex',
-              'flex-direction': 'column',
-              'align-items': 'center',
-              'justify-content': 'center',
-              'width': '180px',
-              'height': '160px',
-              'box-sizing': 'border-box',
-              'flex-shrink': '0',
-              'margin': '10px',
-            });
-            el.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(h => {
-              setStyles(h, {
-                'font-size': '40px',
-                'margin': '0',
-                'padding': '0',
-                'line-height': '1',
-                'text-align': 'center',
-                'white-space': 'normal',
-                'word-break': 'break-word'
-              });
-            });
+          let debounceTimer = null;
+          window.__amqMobileObserver = new MutationObserver(() => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(runLayoutPass, 100);
           });
 
-          // Room name
-          if (roomName) {
-            setStyles(roomName, {
-              'position': 'relative',
-              'top': 'auto',
-              'left': '180px',
-              'right': 'auto',
-              'bottom': 'auto',
-              'display': 'flex',
-              'flex-direction': 'column',
-              'align-items': 'center',
-              'justify-content': 'center',
-              'width': '150px',
-              'height': '100px',
-              'box-sizing': 'border-box',
-              'flex-shrink': '0',
-              'white-space': 'normal',
-              'text-align': 'center',
-              'overflow': 'visible'
-            });
-            roomName.querySelectorAll('h5, h6').forEach(h => {
-              setStyles(h, {
-                'margin': '0',
-                'padding': '0',
-                'line-height': '1.2',
-                'text-align': 'center',
-                'white-space': 'normal',
-                'word-break': 'break-word',
-                'font-size': '30px'
-              });
-            });
-          }
+          window.__amqMobileObserver.observe(document.body, {
+            childList: true,
+            subtree: true
+          });
+
+        } catch (e) {
+          window.ReactNativeWebView.postMessage('ERROR ' + e.message);
         }
-
-
-      } catch (e) {}
-
+      })();
       true;
     `);
   };
@@ -924,7 +1207,7 @@ export default function App() {
             }}
             onPress={debugRealBackgrounds}
           >
-            <Text style={{ color: "white" }}>LAYOUT</Text>
+            <Text style={{ color: "white" }}>DEBUG</Text>
           </TouchableOpacity>
         )}
 
