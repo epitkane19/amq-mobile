@@ -36,6 +36,20 @@ export default function App() {
           padding-right: 0 !important;
       }
 
+      /* AMQ's own "floatingContainer" script recalculates qpSongInfoContainer's
+         width/margins using the old col-xs-3 (15px padding) math and writes them
+         as plain (non-!important) inline styles — which silently overwrites our
+         JS-applied width:100%. A stylesheet !important rule beats a later plain
+         inline style regardless of write order, so this can't be clobbered. */
+      #qpSongInfoContainer {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        left: auto !important;
+        right: auto !important;
+      }
+
 
     \`;
 
@@ -189,6 +203,15 @@ export default function App() {
       (function() {
         try {
 
+          const debug = (label, value) => {
+            window.ReactNativeWebView.postMessage(
+              JSON.stringify({
+                label,
+                value
+              }, null, 2)
+            );
+          };
+
           const setStyles = (el, styles) => {
             if (!el) return;
             Object.entries(styles).forEach(([prop, value]) => {
@@ -316,16 +339,15 @@ export default function App() {
           // ---- Multiple choice answer buttons ----
           const applyMultipleChoiceLayout = () => {
             const mcContainer = document.getElementById('qpMultipleChoiceContainer');
+            
             if (!mcContainer) return;
-
+ 
             const centerContainer = document.getElementById('qpAnimeCenterContainer');
             const parentRow = centerContainer?.parentElement;     // the row holding video + song info
             const grandParent = parentRow?.parentElement;          // the container that holds that row
-
-            if (grandParent && parentRow && mcContainer.parentElement !== grandParent) {
-              grandParent.insertBefore(mcContainer, parentRow.nextSibling);
-            }
-
+ 
+          
+ 
             // Make sure grandParent doesn't clip or constrain mcContainer below the row
             if (grandParent) {
               setStyles(grandParent, {
@@ -334,7 +356,7 @@ export default function App() {
                 'min-height': '0'
               });
             }
-
+ 
             setStyles(mcContainer, {
               'position': 'static',
               'top': 'auto',
@@ -343,15 +365,35 @@ export default function App() {
               'width': '100%',
               'box-sizing': 'border-box',
               'display': 'flex',
-              'flex-direction': 'column',
-              'align-items': 'center',
-              'gap': '160px'
+              'flex-direction': 'column',   // stack the two .qpMultipleChoiceRow divs
+              'align-items': 'stretch',     // each row stretches to full width
+              'row-gap': '160px'            // unchanged vertical rhythm between the two rows
             });
-
+            
             const NEW_HEIGHT = 160; // px, must match entryContainer height below
+            const COLUMN_GAP = 20;  // horizontal gap between the two buttons within a row
+ 
+            // AMQ already groups the 4 answers into two .qpMultipleChoiceRow divs of
+            // 2 each — style that real wrapper as a full-width flex row, rather than
+            // treating the 4 entries as direct flex children of mcContainer (which
+            // they aren't — they're one level deeper, inside these rows).
+            mcContainer.querySelectorAll(".qpMultipleChoiceRow").forEach((row, i) => {
 
+              setStyles(row, {
+                width: "100%",
+                height: NEW_HEIGHT + "px",      // <-- add this
+                minHeight: NEW_HEIGHT + "px",   // <-- and this
+                display: "flex",
+                "flex-direction": "row",
+                "align-items": "stretch",
+                "column-gap": COLUMN_GAP + "px",
+                margin: "0",
+                float: "none"
+            });
+          });
+ 
             mcContainer.querySelectorAll('.qpMultipleChoiceEntryContainer').forEach(entryContainer => {
-
+ 
               // Capture the box's ORIGINAL height (AMQ's own layout height, before we touch it)
               // only once, so repeated passes always scale from the same baseline.
               if (!entryContainer.dataset.amqOrigHeight) {
@@ -360,18 +402,20 @@ export default function App() {
               }
               const origHeight = parseFloat(entryContainer.dataset.amqOrigHeight);
               const scale = NEW_HEIGHT / origHeight;
-
+ 
               setStyles(entryContainer, {
-                'width': '49%',
+                // Two per row filling 100% width: 2 * (50% - gap/2) + gap = 100%
+                // Now resolves correctly since the row (its actual parent) has width: 100%.
+                'width': 'calc(50% - ' + (COLUMN_GAP / 2) + 'px)',
                 'min-width': '140px',
                 'height': NEW_HEIGHT + 'px',
                 'min-height': '90px',
                 'margin': '0',
                 'box-sizing': 'border-box',
-                'float': 'none',
-                'transform': 'translateY(100%)'
+                'float': 'none'
               });
 
+ 
               entryContainer.querySelectorAll(
                 '.qpMultipleChoiceEntryShadow, .qpMultipleChoiceEntryContainerInner, .qpMultipleChoiceEntry, .qpMultipleChoiceEntryTextContainer'
               ).forEach(inner => {
@@ -382,7 +426,7 @@ export default function App() {
                   'transform': 'skew(-10deg)'
                 });
               });
-
+ 
               const textContainer = entryContainer.querySelector('.qpMultipleChoiceEntryTextContainer');
               if (textContainer) {
                 setStyles(textContainer, {
@@ -399,7 +443,7 @@ export default function App() {
                   'transform': 'skew(10deg)'
                 });
               }
-
+ 
               const clickEntry = entryContainer.querySelector('.qpMultipleChoiceEntry');
               if (clickEntry) {
                 setStyles(clickEntry, {
@@ -408,7 +452,7 @@ export default function App() {
                   'justify-content': 'center'
                 });
               }
-
+ 
               // Scale AMQ's auto-fit font-size proportionally, scoped to THIS entry only
               entryContainer.querySelectorAll('.qpMultipleChoiceEntryText').forEach(textEl => {
                 if (!textEl.dataset.amqOrigFontSize) {
@@ -417,7 +461,7 @@ export default function App() {
                 }
                 const origFontSize = parseFloat(textEl.dataset.amqOrigFontSize);
                 const newFontSize = Math.min(origFontSize * scale, 32); // cap so short titles don't get huge
-
+ 
                 setStyles(textEl, {
                   'font-size': newFontSize + 'px',
                   'white-space': 'normal',
@@ -435,15 +479,13 @@ export default function App() {
             if (!centerContainer) return;
 
             setStyles(centerContainer, {
-              'flex': '1 1 70%',   // grow/shrink enabled, with 70% as starting basis
-              'float': 'none',
-              'margin': '10px',
-              'box-sizing': 'border-box',
-              'display': 'flex',
-              'flex-direction': 'column',
-              'align-items': 'center',
-              'top': '170px',
-              'order': '1'
+                position: "relative",
+                top: "auto",
+                paddingTop: "170px",
+                width: "100%",
+                display: "flex",
+                "flex-direction": "column",
+                "align-items": "stretch"
             });
 
             setStyles(document.getElementById('qpCenterInfoContainer'), {
@@ -471,20 +513,16 @@ export default function App() {
               'text-align': 'center'
             });
 
-            setStyles(document.getElementById('qpVideoContainerOuter'), {
-              'width': '100%',
-              'max-width': '100vw',
-              'margin': '0 auto',
-              'left': '0',
-              'right': '0'
+            setStyles(document.getElementById("qpVideoContainerOuter"),{
+                width:"100%",
+                display:"flex",
+                "justify-content":"center"
             });
 
-            setStyles(document.getElementById('qpVideoContainer'), {
-              'width': '100%',
-              'max-width': '100%',
-              'height': 'auto',
-              'aspect-ratio': '16 / 9',
-              'margin': '0 auto'
+            setStyles(document.getElementById("qpVideoContainer"),{
+                width:"100%",
+                "max-width":"900px",
+                "aspect-ratio":"16 / 9"
             });
 
             setStyles(document.getElementById('qpVideoContainerInner'), {
@@ -502,57 +540,80 @@ export default function App() {
               });
           };
 
+          
+
           // ---- Side song info panel (next to video) ----
-          const applySongInfoLayout = () => {
+          // qpAnimeCenterContainer and the col-xs-3 wrapper around qpSongInfoContainer
+          // are flex siblings in the same row. We give that row align-items: stretch
+          // and neither sibling an explicit height — flexbox then makes both columns
+          // match the taller one's height on its own, every reflow, automatically.
+          // (An earlier version tried to compute this height in JS from
+          // qpVideoContainerOuter + qpAnimeNameContainer and set it as a fixed px
+          // value on sideWrapper. That's fragile: if either element briefly measured
+          // 0 height — e.g. mid-transition between songs — the wrapper would get
+          // pinned to ~10px and the whole panel would appear to vanish. Letting
+          // flexbox handle it avoids that failure mode entirely.)
+          const SIDE_WRAPPER_MARKER = 'amqSongInfoSideWrapper';
+
+          // Finds { centerContainer, songInfo, sideWrapper, parentRow }, or null.
+          // Looks for sideWrapper via our own marker class first, falling back to
+          // Bootstrap's 'col-xs-3' — necessary because we strip 'col-xs-3' below,
+          // so relying on it alone would only work on the very first pass.
+          const getQuizSideColumns = () => {
             const centerContainer = document.getElementById('qpAnimeCenterContainer');
             const songInfo = document.getElementById('qpSongInfoContainer');
-            if (!songInfo || !centerContainer) return;
+            if (!centerContainer || !songInfo) return null;
 
-            // The col-xs-3 div wrapping qpSongInfoContainer is the actual sibling
-            // to qpAnimeCenterContainer — that's what needs to be flexed, not songInfo itself.
-            const sideWrapper = songInfo.closest('.col-xs-3');
-            if (!sideWrapper) return;
+            const sideWrapper =
+              songInfo.closest('.' + SIDE_WRAPPER_MARKER) ||
+              songInfo.closest('.col-xs-3');
+            if (!sideWrapper) return null;
 
             const parentRow = centerContainer.parentElement;
-            if (parentRow && parentRow === sideWrapper.parentElement) {
-              setStyles(parentRow, {
-                'display': 'flex',
-                'flex-direction': 'row',
-                'align-items': 'stretch',   // was 'flex-start' — now children match height
-                'width': '100%',
-                'max-width': '100vw',
-                'margin': '0',
-                'padding': '0',
-                'box-sizing': 'border-box',
-                'float': 'none'
-              });
-              // ...grandParent reset stays the same
-            }
+            if (!parentRow || parentRow !== sideWrapper.parentElement) return null;
 
-            // Make the column wider — adjust both sideWrapper and songInfo together
+            return { centerContainer, songInfo, sideWrapper, parentRow };
+          };
+
+          const applySongInfoLayout = () => {
+            const cols = getQuizSideColumns();
+            if (!cols) return;
+            const { songInfo, sideWrapper } = cols;
+
+            // Tag it once so future passes can find it via our own class even
+            // after 'col-xs-3' is gone.
+            sideWrapper.classList.add(SIDE_WRAPPER_MARKER);
+            sideWrapper.classList.remove('col-xs-3');
+
             setStyles(sideWrapper, {
-              'flex': '1 1 30%',
+              'flex': '1 1 20%',       // was 30% — wider, matches centerContainer's 65%
               'position': 'static',
               'float': 'none',
               'top': 'auto',
               'left': 'auto',
               'right': 'auto',
+              'height': 'auto',        // let row stretch determine the baseline height
+              'min-height': '0',       // bump this (e.g. '500px') to force it taller than
+                                        // centerContainer's natural content height — note
+                                        // this also stretches centerContainer to match,
+                                        // leaving blank space below the video
               'box-sizing': 'border-box',
               'margin': '0',
               'padding': '0',
-              'order': '2'
+              'order': '2',
+              // Flex column so content (qpSongInfoContainer) can be pushed down
+              // later (margin-top, justify-content, etc.) without extra wrappers.
+              'display': 'flex',
+              'flex-direction': 'column'
             });
 
-            // Strip the Bootstrap grid class entirely so its CSS rules (width: 25%, etc.)
-            // can't compete with our inline styles at all
-            sideWrapper.classList.remove('col-xs-3');
-
             setStyles(songInfo, {
+              'flex': '1',
               'width': '100%',
-              'height': '100%',
               'box-sizing': 'border-box',
               'padding': '20px',
               'overflow-y': 'auto',
+              'margin-top': '217px'   // pushes it down within the column — tweak/remove as needed
             });
 
             songInfo.querySelectorAll('h3, h5, p, span, a, i').forEach(el => {
@@ -572,13 +633,9 @@ export default function App() {
           };
 
           const applyQuizRowLayout = () => {
-            const centerContainer = document.getElementById('qpAnimeCenterContainer');
-            const songInfo = document.getElementById('qpSongInfoContainer');
-            const sideWrapper = songInfo?.closest('.col-xs-3');
-            if (!centerContainer || !sideWrapper) return;
-
-            const parentRow = centerContainer.parentElement;
-            if (parentRow !== sideWrapper.parentElement) return;
+            const cols = getQuizSideColumns();
+            if (!cols) return;
+            const { parentRow } = cols;
 
             setStyles(parentRow, {
               'display': 'flex',
@@ -603,6 +660,7 @@ export default function App() {
               });
             }
           };
+
 
           // ---- Top-left action buttons (Leave, Return to Lobby, Pause) ----
           const applyQuizLeftButtonsLayout = () => {
@@ -1158,6 +1216,152 @@ export default function App() {
     `);
   };
 
+  // Dumps the quiz row (qpAnimeCenterContainer + song-info column) and every
+  // child of that row, with real rendered widths, so we can see what's eating
+  // horizontal space — including any sibling that's still occupying width
+  // even though it "should" be hidden.
+  const debugSongInfoSpace = () => {
+    webviewRef.current?.injectJavaScript(`
+      try {
+        const centerContainer = document.getElementById('qpAnimeCenterContainer');
+        const songInfo = document.getElementById('qpSongInfoContainer');
+        const sideWrapper =
+          songInfo?.closest('.amqSongInfoSideWrapper') ||
+          songInfo?.closest('.col-xs-3');
+        const parentRow = centerContainer?.parentElement;
+        const grandParent = parentRow?.parentElement;
+
+        const describe = (el) => {
+          if (!el) return null;
+          const rect = el.getBoundingClientRect();
+          const cs = getComputedStyle(el);
+          return {
+            id: el.id || null,
+            className: el.className || null,
+            rect: {
+              top: Math.round(rect.top),
+              left: Math.round(rect.left),
+              right: Math.round(rect.right),
+              width: Math.round(rect.width),
+              height: Math.round(rect.height)
+            },
+            display: cs.display,
+            visibility: cs.visibility,
+            position: cs.position,
+            flex: cs.flex,
+            width: cs.width,
+            maxWidth: cs.maxWidth,
+            marginLeft: cs.marginLeft,
+            marginRight: cs.marginRight,
+            paddingLeft: cs.paddingLeft,
+            paddingRight: cs.paddingRight,
+            boxSizing: cs.boxSizing,
+            overflow: cs.overflow
+          };
+        };
+
+        // Every direct child of the row — reveals any extra sibling
+        // (e.g. a not-fully-hidden chat/right container) still claiming space.
+        const rowChildren = parentRow
+          ? [...parentRow.children].map(describe)
+          : [];
+
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify({
+            grandParent: describe(grandParent),
+            parentRow: describe(parentRow),
+            rowChildrenCount: rowChildren.length,
+            rowChildren,
+            centerContainer: describe(centerContainer),
+            sideWrapper: describe(sideWrapper),
+            songInfo: describe(songInfo)
+          }, null, 2)
+        );
+
+      } catch (e) {
+        window.ReactNativeWebView.postMessage('ERROR ' + e.message);
+      }
+
+      true;
+    `);
+  };
+
+  const debugMultipleChoiceLayout = () => {
+    webviewRef.current?.injectJavaScript(`
+      try {
+        const mcContainer = document.getElementById('qpMultipleChoiceContainer');
+ 
+        const describe = (el) => {
+          if (!el) return null;
+          const rect = el.getBoundingClientRect();
+          const cs = getComputedStyle(el);
+          return {
+            id: el.id || null,
+            className: el.className || null,
+            rect: {
+              top: Math.round(rect.top),
+              left: Math.round(rect.left),
+              right: Math.round(rect.right),
+              bottom: Math.round(rect.bottom),
+              width: Math.round(rect.width),
+              height: Math.round(rect.height)
+            },
+            display: cs.display,
+            visibility: cs.visibility,
+            position: cs.position,
+            transform: cs.transform,
+            overflow: cs.overflow,
+            zIndex: cs.zIndex,
+            width: cs.width,
+            height: cs.height,
+            rowGap: cs.rowGap,
+            columnGap: cs.columnGap,
+            flexDirection: cs.flexDirection,
+            flexWrap: cs.flexWrap
+          };
+        };
+ 
+        const rows = mcContainer
+          ? [...mcContainer.querySelectorAll('.qpMultipleChoiceRow')].map(row => ({
+              row: describe(row),
+              entries: [...row.querySelectorAll('.qpMultipleChoiceEntryContainer')].map(describe)
+            }))
+          : [];
+ 
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify({
+            mcContainer: describe(mcContainer),
+            rowCount: rows.length,
+            rows
+          }, null, 2)
+        );
+ 
+      } catch (e) {
+        window.ReactNativeWebView.postMessage('ERROR ' + e.message);
+      }
+ 
+      true;
+    `);
+  };
+
+  const viewportFix = `
+  (function () {
+      let meta = document.querySelector('meta[name="viewport"]');
+
+      if (!meta) {
+          meta = document.createElement("meta");
+          meta.name = "viewport";
+          document.head.appendChild(meta);
+      }
+
+      meta.content =
+          "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no";
+
+      true;
+  })();
+  `;
+
+
 
   
   return (
@@ -1169,6 +1373,7 @@ export default function App() {
         <WebView
           ref={webviewRef}
           source={{ uri: "https://animemusicquiz.com" }}
+          injectedJavaScriptBeforeContentLoaded={viewportFix}
           injectedJavaScript={injectedJS}
           javaScriptEnabled
           domStorageEnabled
@@ -1205,7 +1410,7 @@ export default function App() {
               padding: 10,
               zIndex: 9999,
             }}
-            onPress={debugRealBackgrounds}
+            onPress={debugMultipleChoiceLayout}
           >
             <Text style={{ color: "white" }}>DEBUG</Text>
           </TouchableOpacity>
