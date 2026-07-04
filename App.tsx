@@ -359,6 +359,7 @@ export default function App() {
  
             setStyles(mcContainer, {
               'position': 'static',
+              'margin-top': '20px',
               'top': 'auto',
               'left': 'auto',
               'right': 'auto',
@@ -367,7 +368,7 @@ export default function App() {
               'display': 'flex',
               'flex-direction': 'column',   // stack the two .qpMultipleChoiceRow divs
               'align-items': 'stretch',     // each row stretches to full width
-              'row-gap': '160px'            // unchanged vertical rhythm between the two rows
+              'row-gap': '190px'            // unchanged vertical rhythm between the two rows
             });
             
             const NEW_HEIGHT = 160; // px, must match entryContainer height below
@@ -479,11 +480,13 @@ export default function App() {
             if (!centerContainer) return;
 
             setStyles(centerContainer, {
+                'flex': '1 1 80%',
                 position: "relative",
                 top: "auto",
-                paddingTop: "170px",
+                transform: "translateY(25%)",
                 width: "100%",
                 display: "flex",
+                'margin-right': '10px',
                 "flex-direction": "column",
                 "align-items": "stretch"
             });
@@ -580,25 +583,36 @@ export default function App() {
             if (!cols) return;
             const { songInfo, sideWrapper } = cols;
 
+            
+
+            const standingContainer = document.getElementById("qpStandingContainer");
+            const leftWrapper = standingContainer?.closest(".col-xs-3");
+
+            if (standingContainer && standingContainer.parentElement !== sideWrapper) {
+                sideWrapper.appendChild(standingContainer);
+            }
+
+            if (leftWrapper && leftWrapper !== sideWrapper) {
+                leftWrapper.style.setProperty("display", "none", "important");
+            }
+                
             // Tag it once so future passes can find it via our own class even
             // after 'col-xs-3' is gone.
             sideWrapper.classList.add(SIDE_WRAPPER_MARKER);
             sideWrapper.classList.remove('col-xs-3');
 
             setStyles(sideWrapper, {
-              'flex': '1 1 20%',       // was 30% — wider, matches centerContainer's 65%
+              'flex': '1 1 20%',
               'position': 'static',
               'float': 'none',
               'top': 'auto',
               'left': 'auto',
               'right': 'auto',
               'height': 'auto',        // let row stretch determine the baseline height
-              'min-height': '0',       // bump this (e.g. '500px') to force it taller than
-                                        // centerContainer's natural content height — note
-                                        // this also stretches centerContainer to match,
-                                        // leaving blank space below the video
+              'min-height': '0',       // bump this (e.g. '500px') to force it taller than                       
               'box-sizing': 'border-box',
-              'margin': '0',
+              'margin-right': '30px',
+              'margin-left': '10px',
               'padding': '0',
               'order': '2',
               // Flex column so content (qpSongInfoContainer) can be pushed down
@@ -608,12 +622,28 @@ export default function App() {
             });
 
             setStyles(songInfo, {
-              'flex': '1',
+              'flex': '1 1 auto',
               'width': '100%',
               'box-sizing': 'border-box',
               'padding': '20px',
               'overflow-y': 'auto',
-              'margin-top': '217px'   // pushes it down within the column — tweak/remove as needed
+              'transform': 'translateY(40%)', 
+            });
+
+            setStyles(qpInfoHider, {
+              'flex': '1 1 auto',
+              'width': '100%',
+              'height': '150%',
+              'box-sizing': 'border-box',
+              'padding': '20px',
+              'overflow-y': 'auto',
+              'margin-top': '0px'   // pushes it down within the column — tweak/remove as needed
+            });
+
+            setStyles(standingContainer, {
+                'flex': '0 0 auto',
+                'transform': 'translateY(100%)',
+                'order': '3'
             });
 
             songInfo.querySelectorAll('h3, h5, p, span, a, i').forEach(el => {
@@ -660,6 +690,8 @@ export default function App() {
               });
             }
           };
+
+          
 
 
           // ---- Top-left action buttons (Leave, Return to Lobby, Pause) ----
@@ -794,7 +826,7 @@ export default function App() {
             });
 
             setStyles(document.getElementById('brMap'), {
-              'position': 'absolute', 'top': '90px', 'left': '50%',
+              'position': 'absolute', 'top': '90px', 'left': '49.5%',
               'transform': 'translateX(-50%) scale(1.07)', 'transform-origin': 'top center'
             });
 
@@ -1344,25 +1376,6 @@ export default function App() {
     `);
   };
 
-  const viewportFix = `
-  (function () {
-      let meta = document.querySelector('meta[name="viewport"]');
-
-      if (!meta) {
-          meta = document.createElement("meta");
-          meta.name = "viewport";
-          document.head.appendChild(meta);
-      }
-
-      meta.content =
-          "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no";
-
-      true;
-  })();
-  `;
-
-
-
   
   return (
     <SafeAreaProvider>
@@ -1373,7 +1386,6 @@ export default function App() {
         <WebView
           ref={webviewRef}
           source={{ uri: "https://animemusicquiz.com" }}
-          injectedJavaScriptBeforeContentLoaded={viewportFix}
           injectedJavaScript={injectedJS}
           javaScriptEnabled
           domStorageEnabled
@@ -1410,7 +1422,7 @@ export default function App() {
               padding: 10,
               zIndex: 9999,
             }}
-            onPress={debugMultipleChoiceLayout}
+            onPress={debugSongInfoSpace}
           >
             <Text style={{ color: "white" }}>DEBUG</Text>
           </TouchableOpacity>
