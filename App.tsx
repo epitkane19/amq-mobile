@@ -54,6 +54,7 @@ export default function App() {
     \`;
 
     document.head.appendChild(style);
+
   `;
 
   // JS executed after page load
@@ -504,7 +505,7 @@ export default function App() {
             });
 
             setStyles(document.getElementById('qpAnimeNameHider'), {
-              'width': '80%',
+              'width': '95%',
               'height': '100px',
               'text-align': 'center',
               'margin': '0 auto'
@@ -743,7 +744,7 @@ export default function App() {
 
             setStyles(optionContainer, {
               'position': 'fixed',
-              'width': '360px',
+              'width': '260px',
               'height': '150px',
               'top': '10px',
               'right': '10px',
@@ -757,10 +758,10 @@ export default function App() {
 
             optionContainer.querySelectorAll('.qpOption').forEach(opt => {
               setStyles(opt, {
-                'width': '70px',
+                'width': '60px',
                 'height': '70px',
                 'top': '30px',
-                'left': '70px',
+                'transform': 'translateX(50%)', 
                 'margin': '10px',
                 'display': 'flex',
                 'align-items': 'center',
@@ -776,15 +777,43 @@ export default function App() {
             });
           };
 
-          const hideStandingPanel = () => {
-            const standingWrapper = document.getElementById('qpStandingContainer')?.closest('.col-xs-3');
-            if (standingWrapper) {
-              standingWrapper.style.setProperty('display', 'none', 'important');
-            }
-          };
+            document.querySelectorAll('#qpQualityList li').forEach(el => {
+              el.style.setProperty('font-size', '60px', 'important');
+              el.style.setProperty('height', 'auto', 'important');
+              el.style.setProperty('line-height', '80px', 'important');
+              el.style.setProperty('width', '100%', 'important');
+            });
 
           const hideVolumeControls = () => {
             ['qpVolumeBar', 'qpVolumeIcon'].forEach(id => {
+              const el = document.getElementById(id);
+              if (el) el.style.setProperty('display', 'none', 'important');
+            });
+          };
+
+          const hideAvatarContainer = () => {
+            ['qpAvatarRowAvatarContainer'].forEach(id => {
+              const el = document.getElementById(id);
+              if (el) el.style.setProperty('display', 'none', 'important');
+            });
+          };
+
+          const hideStickOut = () => {
+            ['qcStickOut'].forEach(id => {
+              const el = document.getElementById(id);
+              if (el) el.style.setProperty('display', 'none', 'important');
+            });
+          };
+
+          const hideSongHistory = () => {
+            ['qpSongHistory'].forEach(id => {
+              const el = document.getElementById(id);
+              if (el) el.style.setProperty('display', 'none', 'important');
+            });
+          };
+
+          const hideOptionContainerHider = () => {
+            ['qpOptionContainerHider'].forEach(id => {
               const el = document.getElementById(id);
               if (el) el.style.setProperty('display', 'none', 'important');
             });
@@ -872,10 +901,13 @@ export default function App() {
             applyQuizRowLayout();
             applyQuizCenterLayout();
             applySongInfoLayout();
-            hideStandingPanel();
             applyQuizLeftButtonsLayout();
             applyQuizRightButtonsLayout();
             hideVolumeControls();
+            hideAvatarContainer();
+            hideStickOut();
+            hideSongHistory();
+            hideOptionContainerHider();
           };
 
           runLayoutPass();
@@ -1376,6 +1408,128 @@ export default function App() {
     `);
   };
 
+  const debugAvatarContainers = () => {
+    webviewRef.current?.injectJavaScript(`
+      try {
+
+        const selectors = [
+          '[class*="qpAvatarRowAvatarContainer"]',
+          '[class*="qpAvatarContainerOuter"]'
+        ];
+
+        const result = [];
+
+        selectors.forEach(selector => {
+
+          const els = document.querySelectorAll(selector);
+
+          els.forEach(el => {
+
+            const rect = el.getBoundingClientRect();
+            const style = window.getComputedStyle(el);
+
+            // walk up a few ancestors too, since the parent
+            // may be what's actually constraining position
+            const ancestors = [];
+            let parent = el.parentElement;
+            for (let i = 0; i < 3 && parent; i++) {
+              const pRect = parent.getBoundingClientRect();
+              const pStyle = window.getComputedStyle(parent);
+              ancestors.push({
+                tag: parent.tagName.toLowerCase(),
+                className: parent.className,
+                id: parent.id,
+                top: Math.round(pRect.top),
+                bottom: Math.round(pRect.bottom),
+                height: Math.round(pRect.height),
+                position: pStyle.position,
+                overflow: pStyle.overflow
+              });
+              parent = parent.parentElement;
+            }
+
+            result.push({
+              selector,
+              tag: el.tagName.toLowerCase(),
+              id: el.id,
+              className: el.className,
+              top: Math.round(rect.top),
+              bottom: Math.round(rect.bottom),
+              height: Math.round(rect.height),
+              position: style.position,
+              top_prop: style.top,
+              marginTop: style.marginTop,
+              paddingTop: style.paddingTop,
+              transform: style.transform,
+              ancestors
+            });
+
+          });
+
+        });
+
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify(result)
+        );
+
+      } catch(e) {
+
+        window.ReactNativeWebView.postMessage(
+          'ERROR ' + e.message
+        );
+
+      }
+
+      true;
+    `);
+  };
+
+  const debugQualityDropdown = () => {
+  webviewRef.current?.injectJavaScript(`
+    try {
+
+      const results = [];
+
+      // search broadly for anything containing quality option text
+      document.querySelectorAll('*').forEach(el => {
+        const text = el.textContent?.trim() || '';
+        if (
+          el.children.length === 0 &&
+          (text === '720p' || text === '480p' || text === 'Sound' || /^\\d+p$/.test(text))
+        ) {
+          const rect = el.getBoundingClientRect();
+          const style = window.getComputedStyle(el);
+          results.push({
+            text,
+            tag: el.tagName.toLowerCase(),
+            className: el.className,
+            id: el.id,
+            fontSize: style.fontSize,
+            padding: style.padding,
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+            parentClassName: el.parentElement?.className,
+            parentId: el.parentElement?.id
+          });
+        }
+      });
+
+      window.ReactNativeWebView.postMessage(
+        JSON.stringify(results, null, 2)
+      );
+
+    } catch(e) {
+
+      window.ReactNativeWebView.postMessage(
+        'ERROR ' + e.message
+      );
+
+    }
+
+    true;
+  `);
+};
+
   
   return (
     <SafeAreaProvider>
@@ -1422,7 +1576,7 @@ export default function App() {
               padding: 10,
               zIndex: 9999,
             }}
-            onPress={debugSongInfoSpace}
+            onPress={debugQualityDropdown}
           >
             <Text style={{ color: "white" }}>DEBUG</Text>
           </TouchableOpacity>
