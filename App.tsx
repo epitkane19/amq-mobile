@@ -27,6 +27,10 @@ export default function App() {
         height: 50px !important;
       }
 
+      #qpVideoSkipContainer {
+        transform: translateY(-60px) !important;
+      }
+
       #gameChatPage > .col-xs-9,
       #battleRoyalPage > .col-xs-9 {
           width: 100% !important;
@@ -224,6 +228,16 @@ export default function App() {
             selectors.forEach(sel => {
               const el = document.querySelector(sel);
               if (el) el.style.setProperty('display', 'none', 'important');
+            });
+          };
+
+          // Video skip button
+          const applyVideoSkipLayout = () => {
+            const skipContainer = document.getElementById('qpVideoSkipContainer');
+            if (!skipContainer) return;
+ 
+            setStyles(skipContainer, {
+              'top': '70%'
             });
           };
 
@@ -602,6 +616,8 @@ export default function App() {
             sideWrapper.classList.add(SIDE_WRAPPER_MARKER);
             sideWrapper.classList.remove('col-xs-3');
 
+            
+
             setStyles(sideWrapper, {
               'flex': '1 1 20%',
               'position': 'static',
@@ -628,7 +644,9 @@ export default function App() {
               'box-sizing': 'border-box',
               'padding': '20px',
               'overflow-y': 'auto',
-              'transform': 'translateY(40%)', 
+              'min-height': '20vh',
+              'max-height': '20vh',
+              'transform': 'translateY(30%)', 
             });
 
             setStyles(qpInfoHider, {
@@ -638,14 +656,27 @@ export default function App() {
               'box-sizing': 'border-box',
               'padding': '20px',
               'overflow-y': 'auto',
+              'min-height': '20vh',
+              'max-height': '20vh',
               'margin-top': '0px'   // pushes it down within the column — tweak/remove as needed
             });
 
             setStyles(standingContainer, {
                 'flex': '0 0 auto',
-                'transform': 'translateY(100%)',
+                'height': 'auto', 
+                'transform': 'translateY(130%)',
                 'order': '3'
             });
+
+            if (standingContainer) {
+              standingContainer.querySelectorAll('.qpScoreBoardEntry, .qpScoreBoardEntry *').forEach(el => {
+                setStyles(el, { 'font-size': '30px' });
+              });
+ 
+              standingContainer.querySelectorAll('.qpScoreBoardNumber, .qpScoreBoardNumber *').forEach(el => {
+                setStyles(el, { 'font-size': '40px', 'margin-top': '-15px' });
+              });
+            }
 
             songInfo.querySelectorAll('h3, h5, p, span, a, i').forEach(el => {
               setStyles(el, {
@@ -908,6 +939,7 @@ export default function App() {
             hideStickOut();
             hideSongHistory();
             hideOptionContainerHider();
+            applyVideoSkipLayout();
           };
 
           runLayoutPass();
